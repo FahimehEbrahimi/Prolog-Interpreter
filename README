@@ -1,0 +1,28 @@
+#########################################################################
+#				    CSC710107				#
+#		             Fahimeh Ebrahimi Meymand			#
+#			   Project 2: Prolog Interpreter		#
+#			   	   15 April 2019			#
+#########################################################################
+
+I tested my program against 4 files and redirect the outputs to separate files:
+
+	sml < test1.sml > out1
+	sml < test2.sml > out2
+	sml < testsuite/monty_python.sml  > monty
+	sml < testsuite/flintstones.sml > flintstones
+
+
+You may want to check these output files to see the algorithm step by step
+I used PrintTerm and PrintList to show the steps.
+
+I commented out all print functions. 
+You may remove the comments to see the algorithm on your test cases. 
+
+Among my test cases, test2.sml does not print the correct clause. 
+But as you can see in "out2" file the algorithm works correctly and the problem is in applying substitution over the collected variables. 
+I could not resolve the bug since it works for other cases like "flintstones.sml".
+
+
+
+

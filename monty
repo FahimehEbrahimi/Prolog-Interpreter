@@ -1,0 +1,722 @@
+Standard ML of New Jersey v110.79 [built: Fri Mar 17 02:09:12 2017]
+- [opening Main.sml]
+val PROLOG_FILE = "Prolog.sml" : string
+val EXPORT_ML = false : bool
+val EXEC_FILE = "pml" : string
+val MLTOOL_DIR = "/usr/lib/smlnj/lib" : string
+val MLYACC_DIR = "/usr/lib/smlnj/ml-yacc/lib" : string
+[opening /usr/lib/smlnj/ml-yacc/lib/base.sig]
+signature STREAM =
+  sig
+    type 'a stream
+    val streamify : (unit -> 'a) -> 'a stream
+    val cons : 'a * 'a stream -> 'a stream
+    val get : 'a stream -> 'a * 'a stream
+  end
+signature LR_TABLE =
+  sig
+    datatype ('a,'b) pairlist = EMPTY | PAIR of 'a * 'b * ('a,'b) pairlist
+    datatype state = STATE of int
+    datatype term = T of int
+    datatype nonterm = NT of int
+    datatype action = ACCEPT | ERROR | REDUCE of int | SHIFT of state
+    type table
+    val numStates : table -> int
+    val numRules : table -> int
+    val describeActions : table -> state -> (term,action) pairlist * action
+    val describeGoto : table -> state -> (nonterm,state) pairlist
+    val action : table -> state * term -> action
+    val goto : table -> state * nonterm -> state
+    val initialState : table -> state
+    exception Goto of state * nonterm
+    val mkLrTable : {actions:((term,action) pairlist * action) array,
+                     gotos:(nonterm,state) pairlist array, initialState:state,
+                     numRules:int, numStates:int}
+                    -> table
+  end
+signature TOKEN =
+  sig
+    structure LrTable :
+      sig
+        datatype ('a,'b) pairlist = EMPTY | PAIR of 'a * 'b * ('a,'b) pairlist
+        datatype state = STATE of int
+        datatype term = T of int
+        datatype nonterm = NT of int
+        datatype action = ACCEPT | ERROR | REDUCE of int | SHIFT of state
+        type table
+        val numStates : table -> int
+        val numRules : table -> int
+        val describeActions : table
+                              -> state -> (term,action) pairlist * action
+        val describeGoto : table -> state -> (nonterm,state) pairlist
+        val action : table -> state * term -> action
+        val goto : table -> state * nonterm -> state
+        val initialState : table -> state
+        exception Goto of state * nonterm
+        val mkLrTable : {actions:((term,action) pairlist * action) array,
+                         gotos:(nonterm,state) pairlist array,
+                         initialState:state, numRules:int, numStates:int}
+                        -> table
+      end
+    datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+    val sameToken : ('a,'b) token * ('a,'b) token -> bool
+  end
+signature LR_PARSER =
+  sig
+    structure Stream :
+      sig
+        type 'a stream
+        val streamify : (unit -> 'a) -> 'a stream
+        val cons : 'a * 'a stream -> 'a stream
+        val get : 'a stream -> 'a * 'a stream
+      end
+    structure LrTable :
+      sig
+        datatype ('a,'b) pairlist = EMPTY | PAIR of 'a * 'b * ('a,'b) pairlist
+        datatype state = STATE of int
+        datatype term = T of int
+        datatype nonterm = NT of int
+        datatype action = ACCEPT | ERROR | REDUCE of int | SHIFT of state
+        type table
+        val numStates : table -> int
+        val numRules : table -> int
+        val describeActions : table
+                              -> state -> (term,action) pairlist * action
+        val describeGoto : table -> state -> (nonterm,state) pairlist
+        val action : table -> state * term -> action
+        val goto : table -> state * nonterm -> state
+        val initialState : table -> state
+        exception Goto of state * nonterm
+        val mkLrTable : {actions:((term,action) pairlist * action) array,
+                         gotos:(nonterm,state) pairlist array,
+                         initialState:state, numRules:int, numStates:int}
+                        -> table
+      end
+    structure Token :
+      sig
+        structure LrTable : <sig>
+        datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+        val sameToken : ('a,'b) token * ('a,'b) token -> bool
+      end
+    exception ParseError
+    val parse : {arg:'a,
+                 ec:{error:string * 'c * 'c -> unit,
+                     errtermvalue:LrTable.term -> 'b,
+                     is_keyword:LrTable.term -> bool,
+                     noShift:LrTable.term -> bool,
+                     preferred_change:(LrTable.term list * LrTable.term list) 
+                                        list,
+                     showTerminal:LrTable.term -> string,
+                     terms:LrTable.term list},
+                 lexer:('b,'c) Token.token Stream.stream, lookahead:int,
+                 saction:int * 'c * (LrTable.state * ('b * 'c * 'c)) list * 'a
+                         -> LrTable.nonterm * ('b * 'c * 'c) * 
+                            (LrTable.state * ('b * 'c * 'c)) list,
+                 table:LrTable.table, void:'b}
+                -> 'b * ('b,'c) Token.token Stream.stream
+    sharing Token.LrTable = LrTable
+  end
+signature LEXER =
+  sig
+    structure UserDeclarations :
+      sig
+        type ('a,'b) token
+        type pos
+        type svalue
+      end
+    val makeLexer : (int -> string)
+                    -> unit
+                       -> (UserDeclarations.svalue,UserDeclarations.pos) 
+                            UserDeclarations.token
+  end
+signature ARG_LEXER =
+  sig
+    structure UserDeclarations :
+      sig
+        type ('a,'b) token
+        type pos
+        type svalue
+        type arg
+      end
+    val makeLexer : (int -> string)
+                    -> UserDeclarations.arg
+                       -> unit
+                          -> (UserDeclarations.svalue,UserDeclarations.pos) 
+                               UserDeclarations.token
+  end
+signature PARSER_DATA =
+  sig
+    type pos
+    type svalue
+    type arg
+    type result
+    structure LrTable :
+      sig
+        datatype ('a,'b) pairlist = EMPTY | PAIR of 'a * 'b * ('a,'b) pairlist
+        datatype state = STATE of int
+        datatype term = T of int
+        datatype nonterm = NT of int
+        datatype action = ACCEPT | ERROR | REDUCE of int | SHIFT of state
+        type table
+        val numStates : table -> int
+        val numRules : table -> int
+        val describeActions : table
+                              -> state -> (term,action) pairlist * action
+        val describeGoto : table -> state -> (nonterm,state) pairlist
+        val action : table -> state * term -> action
+        val goto : table -> state * nonterm -> state
+        val initialState : table -> state
+        exception Goto of state * nonterm
+        val mkLrTable : {actions:((term,action) pairlist * action) array,
+                         gotos:(nonterm,state) pairlist array,
+                         initialState:state, numRules:int, numStates:int}
+                        -> table
+      end
+    structure Token :
+      sig
+        structure LrTable : <sig>
+        datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+        val sameToken : ('a,'b) token * ('a,'b) token -> bool
+      end
+    structure Actions :
+      sig
+        val actions : int * pos * (LrTable.state * (svalue * pos * pos)) list
+                      * arg
+                      -> LrTable.nonterm * (svalue * pos * pos) * 
+                         (LrTable.state * (svalue * pos * pos)) list
+        val void : svalue
+        val extract : svalue -> result
+      end
+    structure EC :
+      sig
+        val is_keyword : LrTable.term -> bool
+        val noShift : LrTable.term -> bool
+        val preferred_change : (LrTable.term list * LrTable.term list) list
+        val errtermvalue : LrTable.term -> svalue
+        val showTerminal : LrTable.term -> string
+        val terms : LrTable.term list
+      end
+    val table : LrTable.table
+    sharing LrTable = Token.LrTable
+  end
+signature PARSER =
+  sig
+    structure Token :
+      sig
+        structure LrTable : <sig>
+        datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+        val sameToken : ('a,'b) token * ('a,'b) token -> bool
+      end
+    structure Stream :
+      sig
+        type 'a stream
+        val streamify : (unit -> 'a) -> 'a stream
+        val cons : 'a * 'a stream -> 'a stream
+        val get : 'a stream -> 'a * 'a stream
+      end
+    exception ParseError
+    type pos
+    type result
+    type arg
+    type svalue
+    val makeLexer : (int -> string) -> (svalue,pos) Token.token Stream.stream
+    val parse : int * (svalue,pos) Token.token Stream.stream * 
+                (string * pos * pos -> unit) * arg
+                -> result * (svalue,pos) Token.token Stream.stream
+    val sameToken : (svalue,pos) Token.token * (svalue,pos) Token.token
+                    -> bool
+  end
+signature ARG_PARSER =
+  sig
+    structure Token :
+      sig
+        structure LrTable : <sig>
+        datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+        val sameToken : ('a,'b) token * ('a,'b) token -> bool
+      end
+    structure Stream :
+      sig
+        type 'a stream
+        val streamify : (unit -> 'a) -> 'a stream
+        val cons : 'a * 'a stream -> 'a stream
+        val get : 'a stream -> 'a * 'a stream
+      end
+    exception ParseError
+    type arg
+    type lexarg
+    type pos
+    type result
+    type svalue
+    val makeLexer : (int -> string)
+                    -> lexarg -> (svalue,pos) Token.token Stream.stream
+    val parse : int * (svalue,pos) Token.token Stream.stream * 
+                (string * pos * pos -> unit) * arg
+                -> result * (svalue,pos) Token.token Stream.stream
+    val sameToken : (svalue,pos) Token.token * (svalue,pos) Token.token
+                    -> bool
+  end
+val it = () : unit
+[opening /usr/lib/smlnj/ml-yacc/lib/join.sml]
+functor Join(<param>: sig
+                        structure Lex : <sig>
+                        structure ParserData : <sig>
+                        structure LrParser : <sig>
+                        sharing LrParser.Token = ParserData.Token
+                        sharing LrParser.LrTable = ParserData.LrTable
+                        sharing type ParserData.Token.token = 
+                                     Lex.UserDeclarations.token
+                        sharing type ParserData.pos = Lex.UserDeclarations.pos
+                        sharing type ParserData.svalue = 
+                                     Lex.UserDeclarations.svalue
+                      end) :
+            sig
+              structure Token : <sig>
+              structure Stream : <sig>
+              exception ParseError
+              type pos
+              type result
+              type arg
+              type svalue
+              val makeLexer : (int -> string)
+                              -> (svalue,pos) Token.token Stream.stream
+              val parse : int * (svalue,pos) Token.token Stream.stream * 
+                          (string * pos * pos -> unit) * arg
+                          -> result * (svalue,pos) Token.token Stream.stream
+              val sameToken : (svalue,pos) Token.token * 
+                              (svalue,pos) Token.token
+                              -> bool
+            end
+functor JoinWithArg(<param>: sig
+                               structure Lex : <sig>
+                               structure ParserData : <sig>
+                               structure LrParser : <sig>
+                               sharing LrParser.Token = ParserData.Token
+                               sharing LrParser.LrTable = ParserData.LrTable
+                               sharing type ParserData.Token.token = 
+                                            Lex.UserDeclarations.token
+                               sharing type ParserData.pos = 
+                                            Lex.UserDeclarations.pos
+                               sharing type ParserData.svalue = 
+                                            Lex.UserDeclarations.svalue
+                             end) :
+                   sig
+                     structure Token : <sig>
+                     structure Stream : <sig>
+                     exception ParseError
+                     type arg
+                     type lexarg
+                     type pos
+                     type result
+                     type svalue
+                     val makeLexer : (int -> string)
+                                     -> lexarg
+                                        -> (svalue,pos) Token.token 
+                                             Stream.stream
+                     val parse : int * (svalue,pos) Token.token Stream.stream
+                                 * (string * pos * pos -> unit) * arg
+                                 -> result * 
+                                    (svalue,pos) Token.token Stream.stream
+                     val sameToken : (svalue,pos) Token.token * 
+                                     (svalue,pos) Token.token
+                                     -> bool
+                   end
+val it = () : unit
+[opening /usr/lib/smlnj/ml-yacc/lib/lrtable.sml]
+[autoloading]
+[library $SMLNJ-BASIS/basis.cm is stable]
+[library $SMLNJ-BASIS/(basis.cm):basis-common.cm is stable]
+[autoloading done]
+structure LrTable : LR_TABLE
+val it = () : unit
+[opening /usr/lib/smlnj/ml-yacc/lib/stream.sml]
+structure Stream : STREAM
+val it = () : unit
+[opening /usr/lib/smlnj/ml-yacc/lib/parser2.sml]
+[autoloading]
+[autoloading done]
+signature FIFO =
+  sig
+    type 'a queue
+    val empty : 'a queue
+    exception Empty
+    val get : 'a queue -> 'a * 'a queue
+    val put : 'a * 'a queue -> 'a queue
+  end
+structure LrParser : LR_PARSER
+val it = () : unit
+[opening Syntax.sig]
+signature SYNTAX =
+  sig
+    datatype Term = Fun of string * Term list | Var of string * int
+    datatype HornClause = Headed of Term * Term list | Headless of Term list
+    val db : HornClause list ref
+    val PrintTerm : Term -> string
+    val PrintClause : HornClause -> string
+    val OutLine : string -> unit
+    val OutSol : (Term * Term) list -> unit
+    val InitDB : unit -> unit
+    val Assert : HornClause -> unit
+  end
+val it = () : unit
+[opening Syntax.sml]
+structure Syntax : SYNTAX
+val it = () : unit
+[opening Prolog.grm.sig]
+signature Prolog_TOKENS =
+  sig
+    type ('a,'b) token
+    type svalue
+    val VAR : string * 'a * 'a -> (svalue,'a) token
+    val ID : string * 'a * 'a -> (svalue,'a) token
+    val UNDER : 'a * 'a -> (svalue,'a) token
+    val LBRCKT : 'a * 'a -> (svalue,'a) token
+    val RBRCKT : 'a * 'a -> (svalue,'a) token
+    val BAR : 'a * 'a -> (svalue,'a) token
+    val LPAREN : 'a * 'a -> (svalue,'a) token
+    val RPAREN : 'a * 'a -> (svalue,'a) token
+    val QUEST : 'a * 'a -> (svalue,'a) token
+    val COMMA : 'a * 'a -> (svalue,'a) token
+    val DOT : 'a * 'a -> (svalue,'a) token
+    val TS : 'a * 'a -> (svalue,'a) token
+    val CUT : 'a * 'a -> (svalue,'a) token
+    val FAIL : 'a * 'a -> (svalue,'a) token
+    val EOF : 'a * 'a -> (svalue,'a) token
+  end
+signature Prolog_LRVALS =
+  sig
+    structure Tokens :
+      sig
+        type ('a,'b) token
+        type svalue
+        val VAR : string * 'a * 'a -> (svalue,'a) token
+        val ID : string * 'a * 'a -> (svalue,'a) token
+        val UNDER : 'a * 'a -> (svalue,'a) token
+        val LBRCKT : 'a * 'a -> (svalue,'a) token
+        val RBRCKT : 'a * 'a -> (svalue,'a) token
+        val BAR : 'a * 'a -> (svalue,'a) token
+        val LPAREN : 'a * 'a -> (svalue,'a) token
+        val RPAREN : 'a * 'a -> (svalue,'a) token
+        val QUEST : 'a * 'a -> (svalue,'a) token
+        val COMMA : 'a * 'a -> (svalue,'a) token
+        val DOT : 'a * 'a -> (svalue,'a) token
+        val TS : 'a * 'a -> (svalue,'a) token
+        val CUT : 'a * 'a -> (svalue,'a) token
+        val FAIL : 'a * 'a -> (svalue,'a) token
+        val EOF : 'a * 'a -> (svalue,'a) token
+      end
+    structure ParserData :
+      sig
+        type pos
+        type svalue
+        type arg
+        type result
+        structure LrTable : <sig>
+        structure Token : <sig>
+        structure Actions : <sig>
+        structure EC : <sig>
+        val table : LrTable.table
+        sharing LrTable = Token.LrTable
+      end
+    sharing type Tokens.svalue = ParserData.svalue
+    sharing type Tokens.token = ParserData.Token.token
+  end
+val it = () : unit
+[opening Prolog.grm.sml]
+[autoloading]
+[autoloading done]
+functor PrologLrValsFun(<param>: sig
+                                   structure Token : <sig>
+                                   structure Syntax : <sig>
+                                 end) :
+                       sig
+                         structure Tokens : <sig>
+                         structure ParserData : <sig>
+                         sharing type Tokens.svalue = ParserData.svalue
+                         sharing type Tokens.token = ParserData.Token.token
+                       end
+val it = () : unit
+[opening Prolog.lex.sml]
+[autoloading]
+[autoloading done]
+functor PrologLex(<param>: sig
+                             structure Tokens : <sig>
+                           end) :
+                 sig
+                   structure UserDeclarations : <sig>
+                   exception LexError
+                   structure Internal : <sig>
+                   val makeLexer : (int -> string) -> unit -> Internal.result
+                 end
+val it = () : unit
+[opening Parser.sml]
+structure PrologLrVals : Prolog_LRVALS
+structure PrologLex :
+  sig
+    structure UserDeclarations : <sig>
+    exception LexError
+    structure Internal : <sig>
+    val makeLexer : (int -> string) -> unit -> Internal.result
+  end
+structure PrologParser : PARSER
+val parse = fn : string -> PrologParser.result
+val parseFile = fn : string -> PrologParser.result
+val it = () : unit
+opening Syntax
+  datatype Term = Fun of string * Term list | Var of string * int
+  datatype HornClause = Headed of Term * Term list | Headless of Term list
+  val db : HornClause list ref
+  val PrintTerm : Term -> string
+  val PrintClause : HornClause -> string
+  val OutLine : string -> unit
+  val OutSol : (Term * Term) list -> unit
+  val InitDB : unit -> unit
+  val Assert : HornClause -> unit
+[opening Prolog.sml]
+val empty = fn : string * int -> Term
+val value = fn : (string * int -> Term) -> Term -> Term
+val comp = fn : (string * int -> Term) * ('a -> Term) -> 'a -> Term
+val upd = fn : (string * int) * Term -> ('a -> Term) -> 'a -> Term
+exception non_unifiable
+exception occurs_check
+exception length
+exception unsolvable
+exception nextrule_check
+val pairup = fn : 'a list * 'b list -> ('a * 'b) list
+val occurs = fn : string * int -> Term -> bool
+val unify_prime = fn
+  : (Term * Term) * (string * int -> Term) -> string * int -> Term
+val unify = fn : Term * Term * (string * int -> Term) -> string * int -> Term
+val rename = fn : int -> Term -> Term
+Prolog.sml:63.4-80.56 Warning: match nonexhaustive
+          (nil,_,S,_) => ...
+          (_,nil,_,_) => ...
+          (g :: goals,Headed (head,tail) :: rules,S,level) => ...
+  
+val solve = fn : Term list * HornClause list -> string * int -> Term
+val collectVars = fn : Term -> Term list
+val PrintList = fn : Term list -> string
+val PrintTerm = fn : Term -> string
+exception print_NO
+val OutQuery = fn : Term list * HornClause list -> unit
+val Prolog = fn : HornClause -> unit
+val it = () : unit
+[opening TopLevel.sml]
+[autoloading]
+[autoloading done]
+structure TopLevel :
+  sig
+    val prolog : unit -> unit
+    val main : 'a * 'b -> OS.Process.status
+  end
+val it = () : unit
+[autoloading]
+[autoloading done]
+val it = () : unit
+opening TopLevel
+  val prolog : unit -> unit
+  val main : 'a * 'b -> OS.Process.status
+val it = () : unit
+Database erased.
+val it = () : unit
+assert:  witch(X) :- burns(X),woman(X).
+val it = () : unit
+assert:  woman(girl).
+val it = () : unit
+assert:  burns(X) :- isMadeOfWood(X).
+val it = () : unit
+assert:  isMadeOfWood(X) :- floats(X).
+val it = () : unit
+assert:  floats(duck).
+val it = () : unit
+assert:  floats(Y) :- floats(X),sameWeight(X,Y).
+val it = () : unit
+assert:  sameWeight(duck,girl).
+val it = () : unit
+query:  witch(girl)?
+Inside Unify: 
+t1_prime: witch(_X1)
+t2_prime: witch(girl)
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: girl
+
+Inside Solve: 
+Head of Rules: witch(_X1)
+Head of Goals: witch(girl)
+
+Inside Unify: 
+t1_prime: witch(_X2)
+t2_prime: burns(girl)
+
+Inside Unify: 
+t1_prime: woman(girl)
+t2_prime: burns(girl)
+
+Inside Unify: 
+t1_prime: burns(_X2)
+t2_prime: burns(girl)
+
+Inside Unify: 
+t1_prime: _X2
+t2_prime: girl
+
+Inside Solve: 
+Head of Rules: burns(_X2)
+Head of Goals: burns(_X1)
+
+Inside Unify: 
+t1_prime: witch(_X3)
+t2_prime: isMadeOfWood(girl)
+
+Inside Unify: 
+t1_prime: woman(girl)
+t2_prime: isMadeOfWood(girl)
+
+Inside Unify: 
+t1_prime: burns(_X3)
+t2_prime: isMadeOfWood(girl)
+
+Inside Unify: 
+t1_prime: isMadeOfWood(_X3)
+t2_prime: isMadeOfWood(girl)
+
+Inside Unify: 
+t1_prime: _X3
+t2_prime: girl
+
+Inside Solve: 
+Head of Rules: isMadeOfWood(_X3)
+Head of Goals: isMadeOfWood(_X2)
+
+Inside Unify: 
+t1_prime: witch(_X4)
+t2_prime: floats(girl)
+
+Inside Unify: 
+t1_prime: woman(girl)
+t2_prime: floats(girl)
+
+Inside Unify: 
+t1_prime: burns(_X4)
+t2_prime: floats(girl)
+
+Inside Unify: 
+t1_prime: isMadeOfWood(_X4)
+t2_prime: floats(girl)
+
+Inside Unify: 
+t1_prime: floats(duck)
+t2_prime: floats(girl)
+
+Inside Unify: 
+t1_prime: duck
+t2_prime: girl
+
+Inside Unify: 
+t1_prime: floats(_Y4)
+t2_prime: floats(girl)
+
+Inside Unify: 
+t1_prime: _Y4
+t2_prime: girl
+
+Inside Solve: 
+Head of Rules: floats(_Y4)
+Head of Goals: floats(_X3)
+
+Inside Unify: 
+t1_prime: witch(_X5)
+t2_prime: floats(_X4)
+
+Inside Unify: 
+t1_prime: woman(girl)
+t2_prime: floats(_X4)
+
+Inside Unify: 
+t1_prime: burns(_X5)
+t2_prime: floats(_X4)
+
+Inside Unify: 
+t1_prime: isMadeOfWood(_X5)
+t2_prime: floats(_X4)
+
+Inside Unify: 
+t1_prime: floats(duck)
+t2_prime: floats(_X4)
+
+Inside Unify: 
+t1_prime: duck
+t2_prime: _X4
+
+Inside Solve: 
+Head of Rules: floats(duck)
+Head of Goals: floats(_X4)
+
+Inside Unify: 
+t1_prime: witch(_X6)
+t2_prime: sameWeight(duck,girl)
+
+Inside Unify: 
+t1_prime: woman(girl)
+t2_prime: sameWeight(duck,girl)
+
+Inside Unify: 
+t1_prime: burns(_X6)
+t2_prime: sameWeight(duck,girl)
+
+Inside Unify: 
+t1_prime: isMadeOfWood(_X6)
+t2_prime: sameWeight(duck,girl)
+
+Inside Unify: 
+t1_prime: floats(duck)
+t2_prime: sameWeight(duck,girl)
+
+Inside Unify: 
+t1_prime: floats(_Y6)
+t2_prime: sameWeight(duck,girl)
+
+Inside Unify: 
+t1_prime: sameWeight(duck,girl)
+t2_prime: sameWeight(duck,girl)
+
+Inside Unify: 
+t1_prime: girl
+t2_prime: girl
+
+Inside Unify: 
+t1_prime: duck
+t2_prime: duck
+
+Inside Solve: 
+Head of Rules: sameWeight(duck,girl)
+Head of Goals: sameWeight(_X4,_Y4)
+
+Inside Unify: 
+t1_prime: witch(_X7)
+t2_prime: woman(girl)
+
+Inside Unify: 
+t1_prime: woman(girl)
+t2_prime: woman(girl)
+
+Inside Unify: 
+t1_prime: girl
+t2_prime: girl
+
+Inside Solve: 
+Head of Rules: woman(girl)
+Head of Goals: woman(_X1)
+
+Inside OutQuery: 
+List of Goals: witch(girl)
+varlist: 
+valueList: 
+
+
+
+  YES!
+solution:
+val it = () : unit
+- 

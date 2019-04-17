@@ -1,0 +1,7022 @@
+Standard ML of New Jersey v110.79 [built: Fri Mar 17 02:09:12 2017]
+- [opening Main.sml]
+val PROLOG_FILE = "Prolog.sml" : string
+val EXPORT_ML = false : bool
+val EXEC_FILE = "pml" : string
+val MLTOOL_DIR = "/usr/lib/smlnj/lib" : string
+val MLYACC_DIR = "/usr/lib/smlnj/ml-yacc/lib" : string
+[opening /usr/lib/smlnj/ml-yacc/lib/base.sig]
+signature STREAM =
+  sig
+    type 'a stream
+    val streamify : (unit -> 'a) -> 'a stream
+    val cons : 'a * 'a stream -> 'a stream
+    val get : 'a stream -> 'a * 'a stream
+  end
+signature LR_TABLE =
+  sig
+    datatype ('a,'b) pairlist = EMPTY | PAIR of 'a * 'b * ('a,'b) pairlist
+    datatype state = STATE of int
+    datatype term = T of int
+    datatype nonterm = NT of int
+    datatype action = ACCEPT | ERROR | REDUCE of int | SHIFT of state
+    type table
+    val numStates : table -> int
+    val numRules : table -> int
+    val describeActions : table -> state -> (term,action) pairlist * action
+    val describeGoto : table -> state -> (nonterm,state) pairlist
+    val action : table -> state * term -> action
+    val goto : table -> state * nonterm -> state
+    val initialState : table -> state
+    exception Goto of state * nonterm
+    val mkLrTable : {actions:((term,action) pairlist * action) array,
+                     gotos:(nonterm,state) pairlist array, initialState:state,
+                     numRules:int, numStates:int}
+                    -> table
+  end
+signature TOKEN =
+  sig
+    structure LrTable :
+      sig
+        datatype ('a,'b) pairlist = EMPTY | PAIR of 'a * 'b * ('a,'b) pairlist
+        datatype state = STATE of int
+        datatype term = T of int
+        datatype nonterm = NT of int
+        datatype action = ACCEPT | ERROR | REDUCE of int | SHIFT of state
+        type table
+        val numStates : table -> int
+        val numRules : table -> int
+        val describeActions : table
+                              -> state -> (term,action) pairlist * action
+        val describeGoto : table -> state -> (nonterm,state) pairlist
+        val action : table -> state * term -> action
+        val goto : table -> state * nonterm -> state
+        val initialState : table -> state
+        exception Goto of state * nonterm
+        val mkLrTable : {actions:((term,action) pairlist * action) array,
+                         gotos:(nonterm,state) pairlist array,
+                         initialState:state, numRules:int, numStates:int}
+                        -> table
+      end
+    datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+    val sameToken : ('a,'b) token * ('a,'b) token -> bool
+  end
+signature LR_PARSER =
+  sig
+    structure Stream :
+      sig
+        type 'a stream
+        val streamify : (unit -> 'a) -> 'a stream
+        val cons : 'a * 'a stream -> 'a stream
+        val get : 'a stream -> 'a * 'a stream
+      end
+    structure LrTable :
+      sig
+        datatype ('a,'b) pairlist = EMPTY | PAIR of 'a * 'b * ('a,'b) pairlist
+        datatype state = STATE of int
+        datatype term = T of int
+        datatype nonterm = NT of int
+        datatype action = ACCEPT | ERROR | REDUCE of int | SHIFT of state
+        type table
+        val numStates : table -> int
+        val numRules : table -> int
+        val describeActions : table
+                              -> state -> (term,action) pairlist * action
+        val describeGoto : table -> state -> (nonterm,state) pairlist
+        val action : table -> state * term -> action
+        val goto : table -> state * nonterm -> state
+        val initialState : table -> state
+        exception Goto of state * nonterm
+        val mkLrTable : {actions:((term,action) pairlist * action) array,
+                         gotos:(nonterm,state) pairlist array,
+                         initialState:state, numRules:int, numStates:int}
+                        -> table
+      end
+    structure Token :
+      sig
+        structure LrTable : <sig>
+        datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+        val sameToken : ('a,'b) token * ('a,'b) token -> bool
+      end
+    exception ParseError
+    val parse : {arg:'a,
+                 ec:{error:string * 'c * 'c -> unit,
+                     errtermvalue:LrTable.term -> 'b,
+                     is_keyword:LrTable.term -> bool,
+                     noShift:LrTable.term -> bool,
+                     preferred_change:(LrTable.term list * LrTable.term list) 
+                                        list,
+                     showTerminal:LrTable.term -> string,
+                     terms:LrTable.term list},
+                 lexer:('b,'c) Token.token Stream.stream, lookahead:int,
+                 saction:int * 'c * (LrTable.state * ('b * 'c * 'c)) list * 'a
+                         -> LrTable.nonterm * ('b * 'c * 'c) * 
+                            (LrTable.state * ('b * 'c * 'c)) list,
+                 table:LrTable.table, void:'b}
+                -> 'b * ('b,'c) Token.token Stream.stream
+    sharing Token.LrTable = LrTable
+  end
+signature LEXER =
+  sig
+    structure UserDeclarations :
+      sig
+        type ('a,'b) token
+        type pos
+        type svalue
+      end
+    val makeLexer : (int -> string)
+                    -> unit
+                       -> (UserDeclarations.svalue,UserDeclarations.pos) 
+                            UserDeclarations.token
+  end
+signature ARG_LEXER =
+  sig
+    structure UserDeclarations :
+      sig
+        type ('a,'b) token
+        type pos
+        type svalue
+        type arg
+      end
+    val makeLexer : (int -> string)
+                    -> UserDeclarations.arg
+                       -> unit
+                          -> (UserDeclarations.svalue,UserDeclarations.pos) 
+                               UserDeclarations.token
+  end
+signature PARSER_DATA =
+  sig
+    type pos
+    type svalue
+    type arg
+    type result
+    structure LrTable :
+      sig
+        datatype ('a,'b) pairlist = EMPTY | PAIR of 'a * 'b * ('a,'b) pairlist
+        datatype state = STATE of int
+        datatype term = T of int
+        datatype nonterm = NT of int
+        datatype action = ACCEPT | ERROR | REDUCE of int | SHIFT of state
+        type table
+        val numStates : table -> int
+        val numRules : table -> int
+        val describeActions : table
+                              -> state -> (term,action) pairlist * action
+        val describeGoto : table -> state -> (nonterm,state) pairlist
+        val action : table -> state * term -> action
+        val goto : table -> state * nonterm -> state
+        val initialState : table -> state
+        exception Goto of state * nonterm
+        val mkLrTable : {actions:((term,action) pairlist * action) array,
+                         gotos:(nonterm,state) pairlist array,
+                         initialState:state, numRules:int, numStates:int}
+                        -> table
+      end
+    structure Token :
+      sig
+        structure LrTable : <sig>
+        datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+        val sameToken : ('a,'b) token * ('a,'b) token -> bool
+      end
+    structure Actions :
+      sig
+        val actions : int * pos * (LrTable.state * (svalue * pos * pos)) list
+                      * arg
+                      -> LrTable.nonterm * (svalue * pos * pos) * 
+                         (LrTable.state * (svalue * pos * pos)) list
+        val void : svalue
+        val extract : svalue -> result
+      end
+    structure EC :
+      sig
+        val is_keyword : LrTable.term -> bool
+        val noShift : LrTable.term -> bool
+        val preferred_change : (LrTable.term list * LrTable.term list) list
+        val errtermvalue : LrTable.term -> svalue
+        val showTerminal : LrTable.term -> string
+        val terms : LrTable.term list
+      end
+    val table : LrTable.table
+    sharing LrTable = Token.LrTable
+  end
+signature PARSER =
+  sig
+    structure Token :
+      sig
+        structure LrTable : <sig>
+        datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+        val sameToken : ('a,'b) token * ('a,'b) token -> bool
+      end
+    structure Stream :
+      sig
+        type 'a stream
+        val streamify : (unit -> 'a) -> 'a stream
+        val cons : 'a * 'a stream -> 'a stream
+        val get : 'a stream -> 'a * 'a stream
+      end
+    exception ParseError
+    type pos
+    type result
+    type arg
+    type svalue
+    val makeLexer : (int -> string) -> (svalue,pos) Token.token Stream.stream
+    val parse : int * (svalue,pos) Token.token Stream.stream * 
+                (string * pos * pos -> unit) * arg
+                -> result * (svalue,pos) Token.token Stream.stream
+    val sameToken : (svalue,pos) Token.token * (svalue,pos) Token.token
+                    -> bool
+  end
+signature ARG_PARSER =
+  sig
+    structure Token :
+      sig
+        structure LrTable : <sig>
+        datatype ('a,'b) token = TOKEN of LrTable.term * ('a * 'b * 'b)
+        val sameToken : ('a,'b) token * ('a,'b) token -> bool
+      end
+    structure Stream :
+      sig
+        type 'a stream
+        val streamify : (unit -> 'a) -> 'a stream
+        val cons : 'a * 'a stream -> 'a stream
+        val get : 'a stream -> 'a * 'a stream
+      end
+    exception ParseError
+    type arg
+    type lexarg
+    type pos
+    type result
+    type svalue
+    val makeLexer : (int -> string)
+                    -> lexarg -> (svalue,pos) Token.token Stream.stream
+    val parse : int * (svalue,pos) Token.token Stream.stream * 
+                (string * pos * pos -> unit) * arg
+                -> result * (svalue,pos) Token.token Stream.stream
+    val sameToken : (svalue,pos) Token.token * (svalue,pos) Token.token
+                    -> bool
+  end
+val it = () : unit
+[opening /usr/lib/smlnj/ml-yacc/lib/join.sml]
+functor Join(<param>: sig
+                        structure Lex : <sig>
+                        structure ParserData : <sig>
+                        structure LrParser : <sig>
+                        sharing LrParser.Token = ParserData.Token
+                        sharing LrParser.LrTable = ParserData.LrTable
+                        sharing type ParserData.Token.token = 
+                                     Lex.UserDeclarations.token
+                        sharing type ParserData.pos = Lex.UserDeclarations.pos
+                        sharing type ParserData.svalue = 
+                                     Lex.UserDeclarations.svalue
+                      end) :
+            sig
+              structure Token : <sig>
+              structure Stream : <sig>
+              exception ParseError
+              type pos
+              type result
+              type arg
+              type svalue
+              val makeLexer : (int -> string)
+                              -> (svalue,pos) Token.token Stream.stream
+              val parse : int * (svalue,pos) Token.token Stream.stream * 
+                          (string * pos * pos -> unit) * arg
+                          -> result * (svalue,pos) Token.token Stream.stream
+              val sameToken : (svalue,pos) Token.token * 
+                              (svalue,pos) Token.token
+                              -> bool
+            end
+functor JoinWithArg(<param>: sig
+                               structure Lex : <sig>
+                               structure ParserData : <sig>
+                               structure LrParser : <sig>
+                               sharing LrParser.Token = ParserData.Token
+                               sharing LrParser.LrTable = ParserData.LrTable
+                               sharing type ParserData.Token.token = 
+                                            Lex.UserDeclarations.token
+                               sharing type ParserData.pos = 
+                                            Lex.UserDeclarations.pos
+                               sharing type ParserData.svalue = 
+                                            Lex.UserDeclarations.svalue
+                             end) :
+                   sig
+                     structure Token : <sig>
+                     structure Stream : <sig>
+                     exception ParseError
+                     type arg
+                     type lexarg
+                     type pos
+                     type result
+                     type svalue
+                     val makeLexer : (int -> string)
+                                     -> lexarg
+                                        -> (svalue,pos) Token.token 
+                                             Stream.stream
+                     val parse : int * (svalue,pos) Token.token Stream.stream
+                                 * (string * pos * pos -> unit) * arg
+                                 -> result * 
+                                    (svalue,pos) Token.token Stream.stream
+                     val sameToken : (svalue,pos) Token.token * 
+                                     (svalue,pos) Token.token
+                                     -> bool
+                   end
+val it = () : unit
+[opening /usr/lib/smlnj/ml-yacc/lib/lrtable.sml]
+[autoloading]
+[library $SMLNJ-BASIS/basis.cm is stable]
+[library $SMLNJ-BASIS/(basis.cm):basis-common.cm is stable]
+[autoloading done]
+structure LrTable : LR_TABLE
+val it = () : unit
+[opening /usr/lib/smlnj/ml-yacc/lib/stream.sml]
+structure Stream : STREAM
+val it = () : unit
+[opening /usr/lib/smlnj/ml-yacc/lib/parser2.sml]
+[autoloading]
+[autoloading done]
+signature FIFO =
+  sig
+    type 'a queue
+    val empty : 'a queue
+    exception Empty
+    val get : 'a queue -> 'a * 'a queue
+    val put : 'a * 'a queue -> 'a queue
+  end
+structure LrParser : LR_PARSER
+val it = () : unit
+[opening Syntax.sig]
+signature SYNTAX =
+  sig
+    datatype Term = Fun of string * Term list | Var of string * int
+    datatype HornClause = Headed of Term * Term list | Headless of Term list
+    val db : HornClause list ref
+    val PrintTerm : Term -> string
+    val PrintClause : HornClause -> string
+    val OutLine : string -> unit
+    val OutSol : (Term * Term) list -> unit
+    val InitDB : unit -> unit
+    val Assert : HornClause -> unit
+  end
+val it = () : unit
+[opening Syntax.sml]
+structure Syntax : SYNTAX
+val it = () : unit
+[opening Prolog.grm.sig]
+signature Prolog_TOKENS =
+  sig
+    type ('a,'b) token
+    type svalue
+    val VAR : string * 'a * 'a -> (svalue,'a) token
+    val ID : string * 'a * 'a -> (svalue,'a) token
+    val UNDER : 'a * 'a -> (svalue,'a) token
+    val LBRCKT : 'a * 'a -> (svalue,'a) token
+    val RBRCKT : 'a * 'a -> (svalue,'a) token
+    val BAR : 'a * 'a -> (svalue,'a) token
+    val LPAREN : 'a * 'a -> (svalue,'a) token
+    val RPAREN : 'a * 'a -> (svalue,'a) token
+    val QUEST : 'a * 'a -> (svalue,'a) token
+    val COMMA : 'a * 'a -> (svalue,'a) token
+    val DOT : 'a * 'a -> (svalue,'a) token
+    val TS : 'a * 'a -> (svalue,'a) token
+    val CUT : 'a * 'a -> (svalue,'a) token
+    val FAIL : 'a * 'a -> (svalue,'a) token
+    val EOF : 'a * 'a -> (svalue,'a) token
+  end
+signature Prolog_LRVALS =
+  sig
+    structure Tokens :
+      sig
+        type ('a,'b) token
+        type svalue
+        val VAR : string * 'a * 'a -> (svalue,'a) token
+        val ID : string * 'a * 'a -> (svalue,'a) token
+        val UNDER : 'a * 'a -> (svalue,'a) token
+        val LBRCKT : 'a * 'a -> (svalue,'a) token
+        val RBRCKT : 'a * 'a -> (svalue,'a) token
+        val BAR : 'a * 'a -> (svalue,'a) token
+        val LPAREN : 'a * 'a -> (svalue,'a) token
+        val RPAREN : 'a * 'a -> (svalue,'a) token
+        val QUEST : 'a * 'a -> (svalue,'a) token
+        val COMMA : 'a * 'a -> (svalue,'a) token
+        val DOT : 'a * 'a -> (svalue,'a) token
+        val TS : 'a * 'a -> (svalue,'a) token
+        val CUT : 'a * 'a -> (svalue,'a) token
+        val FAIL : 'a * 'a -> (svalue,'a) token
+        val EOF : 'a * 'a -> (svalue,'a) token
+      end
+    structure ParserData :
+      sig
+        type pos
+        type svalue
+        type arg
+        type result
+        structure LrTable : <sig>
+        structure Token : <sig>
+        structure Actions : <sig>
+        structure EC : <sig>
+        val table : LrTable.table
+        sharing LrTable = Token.LrTable
+      end
+    sharing type Tokens.svalue = ParserData.svalue
+    sharing type Tokens.token = ParserData.Token.token
+  end
+val it = () : unit
+[opening Prolog.grm.sml]
+[autoloading]
+[autoloading done]
+functor PrologLrValsFun(<param>: sig
+                                   structure Token : <sig>
+                                   structure Syntax : <sig>
+                                 end) :
+                       sig
+                         structure Tokens : <sig>
+                         structure ParserData : <sig>
+                         sharing type Tokens.svalue = ParserData.svalue
+                         sharing type Tokens.token = ParserData.Token.token
+                       end
+val it = () : unit
+[opening Prolog.lex.sml]
+[autoloading]
+[autoloading done]
+functor PrologLex(<param>: sig
+                             structure Tokens : <sig>
+                           end) :
+                 sig
+                   structure UserDeclarations : <sig>
+                   exception LexError
+                   structure Internal : <sig>
+                   val makeLexer : (int -> string) -> unit -> Internal.result
+                 end
+val it = () : unit
+[opening Parser.sml]
+structure PrologLrVals : Prolog_LRVALS
+structure PrologLex :
+  sig
+    structure UserDeclarations : <sig>
+    exception LexError
+    structure Internal : <sig>
+    val makeLexer : (int -> string) -> unit -> Internal.result
+  end
+structure PrologParser : PARSER
+val parse = fn : string -> PrologParser.result
+val parseFile = fn : string -> PrologParser.result
+val it = () : unit
+opening Syntax
+  datatype Term = Fun of string * Term list | Var of string * int
+  datatype HornClause = Headed of Term * Term list | Headless of Term list
+  val db : HornClause list ref
+  val PrintTerm : Term -> string
+  val PrintClause : HornClause -> string
+  val OutLine : string -> unit
+  val OutSol : (Term * Term) list -> unit
+  val InitDB : unit -> unit
+  val Assert : HornClause -> unit
+[opening Prolog.sml]
+val empty = fn : string * int -> Term
+val value = fn : (string * int -> Term) -> Term -> Term
+val comp = fn : (string * int -> Term) * ('a -> Term) -> 'a -> Term
+val upd = fn : (string * int) * Term -> ('a -> Term) -> 'a -> Term
+exception non_unifiable
+exception occurs_check
+exception length
+exception unsolvable
+exception nextrule_check
+val pairup = fn : 'a list * 'b list -> ('a * 'b) list
+val occurs = fn : string * int -> Term -> bool
+val unify_prime = fn
+  : (Term * Term) * (string * int -> Term) -> string * int -> Term
+val unify = fn : Term * Term * (string * int -> Term) -> string * int -> Term
+val rename = fn : int -> Term -> Term
+Prolog.sml:63.4-80.56 Warning: match nonexhaustive
+          (nil,_,S,_) => ...
+          (_,nil,_,_) => ...
+          (g :: goals,Headed (head,tail) :: rules,S,level) => ...
+  
+val solve = fn : Term list * HornClause list -> string * int -> Term
+val collectVars = fn : Term -> Term list
+val PrintList = fn : Term list -> string
+val PrintTerm = fn : Term -> string
+exception print_NO
+val OutQuery = fn : Term list * HornClause list -> unit
+val Prolog = fn : HornClause -> unit
+val it = () : unit
+[opening TopLevel.sml]
+[autoloading]
+[autoloading done]
+structure TopLevel :
+  sig
+    val prolog : unit -> unit
+    val main : 'a * 'b -> OS.Process.status
+  end
+val it = () : unit
+[autoloading]
+[autoloading done]
+val it = () : unit
+opening TopLevel
+  val prolog : unit -> unit
+  val main : 'a * 'b -> OS.Process.status
+val it = () : unit
+Database erased.
+val it = () : unit
+assert:  father(fred,rocky).
+val it = () : unit
+assert:  father(fred,dino).
+val it = () : unit
+assert:  father(fred,pebbles).
+val it = () : unit
+assert:  father(barney,bambam).
+val it = () : unit
+assert:  father(bambam,scooby).
+val it = () : unit
+assert:  father(bambam,shaggy).
+val it = () : unit
+assert:  father(rocky,dafney).
+val it = () : unit
+assert:  mother(wilma,pebbles).
+val it = () : unit
+assert:  mother(wilma,dino).
+val it = () : unit
+assert:  mother(wilma,rocky).
+val it = () : unit
+assert:  mother(betty,bambam).
+val it = () : unit
+assert:  mother(pebbles,shaggy).
+val it = () : unit
+assert:  mother(pebbles,scooby).
+val it = () : unit
+assert:  mother(wednesday,dafney).
+val it = () : unit
+assert:  male(fred).
+val it = () : unit
+assert:  male(barney).
+val it = () : unit
+assert:  male(bambam).
+val it = () : unit
+assert:  male(rocky).
+val it = () : unit
+assert:  male(dino).
+val it = () : unit
+assert:  male(shaggy).
+val it = () : unit
+assert:  male(scooby).
+val it = () : unit
+assert:  female(wilma).
+val it = () : unit
+assert:  female(betty).
+val it = () : unit
+assert:  female(pebbles).
+val it = () : unit
+assert:  female(wednesday).
+val it = () : unit
+assert:  female(dafney).
+val it = () : unit
+assert:  parent(X,Y) :- father(X,Y).
+val it = () : unit
+assert:  parent(X,Y) :- mother(X,Y).
+val it = () : unit
+assert:  sibling(X,Y) :- mother(Z,X),mother(Z,Y).
+val it = () : unit
+assert:  aunt(X,Y) :- female(X),sibling(X,Z),parent(Z,Y).
+val it = () : unit
+assert:  uncle(X,Y) :- male(X),sibling(X,Z),parent(Z,Y).
+val it = () : unit
+assert:  cousin(X,Y) :- mother(Z,X),aunt(Z,Y).
+val it = () : unit
+assert:  cousin(X,Y) :- father(Z,X),uncle(Z,Y).
+val it = () : unit
+assert:  ances(X,Y) :- parent(X,Y).
+val it = () : unit
+assert:  ances(X,Y) :- parent(X,Z),ances(Z,Y).
+val it = () : unit
+query:  parent(fred,pebbles)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: fred
+
+Inside Solve: 
+Head of Rules: parent(_X1,_Y1)
+Head of Goals: parent(fred,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: father(fred,pebbles)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: father(fred,pebbles)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: father(fred,pebbles)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: fred
+
+Inside Solve: 
+Head of Rules: father(fred,pebbles)
+Head of Goals: father(_X1,_Y1)
+
+Inside OutQuery: 
+List of Goals: parent(fred,pebbles)
+varlist: 
+valueList: 
+
+
+
+  YES!
+solution:
+val it = () : unit
+query:  parent(fred,X)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: fred
+
+Inside Solve: 
+Head of Rules: parent(_X1,_Y1)
+Head of Goals: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: father(fred,X)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: fred
+
+Inside Solve: 
+Head of Rules: father(fred,rocky)
+Head of Goals: father(_X1,_Y1)
+
+Inside OutQuery: 
+List of Goals: parent(fred,X)
+varlist: X
+valueList: rocky
+
+
+
+  YES!
+solution:
+X = rocky
+val it = () : unit
+query:  parent(X,bambam)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: bambam
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: X
+
+Inside Solve: 
+Head of Rules: parent(_X1,_Y1)
+Head of Goals: parent(X,bambam)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: father(X,bambam)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: bambam
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: father(X,bambam)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: bambam
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: father(X,bambam)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: bambam
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: father(X,bambam)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: bambam
+
+Inside Unify: 
+t1_prime: barney
+t2_prime: X
+
+Inside Solve: 
+Head of Rules: father(barney,bambam)
+Head of Goals: father(_X1,_Y1)
+
+Inside OutQuery: 
+List of Goals: parent(X,bambam)
+varlist: X
+valueList: barney
+
+
+
+  YES!
+solution:
+X = barney
+val it = () : unit
+query:  parent(shaggy,X)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: shaggy
+
+Inside Solve: 
+Head of Rules: parent(_X1,_Y1)
+Head of Goals: parent(shaggy,X)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: shaggy
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: shaggy
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: shaggy
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: X
+
+Inside Unify: 
+t1_prime: barney
+t2_prime: shaggy
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: X
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: shaggy
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: X
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: shaggy
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: dafney
+t2_prime: X
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: shaggy
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: parent(_X2,_Y2)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: parent(_X2,_Y2)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: sibling(_X2,_Y2)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: aunt(_X2,_Y2)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: uncle(_X2,_Y2)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: cousin(_X2,_Y2)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: cousin(_X2,_Y2)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: ances(_X2,_Y2)
+t2_prime: father(shaggy,X)
+
+Inside Unify: 
+t1_prime: ances(_X2,_Y2)
+t2_prime: father(shaggy,X)
+
+
+
+No Solution Found!
+val it = () : unit
+query:  sibling(pebbles,X)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: sibling(_X1,_Y1)
+Head of Goals: sibling(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z1,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z1,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z1,pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z1,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z1,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z1,pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z1,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z1,pebbles)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: _Z1
+
+Inside Solve: 
+Head of Rules: mother(wilma,pebbles)
+Head of Goals: mother(_Z1,_X1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(wilma,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(wilma,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(wilma,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(wilma,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(wilma,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(wilma,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(wilma,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(wilma,X)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: X
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: wilma
+
+Inside Solve: 
+Head of Rules: mother(wilma,pebbles)
+Head of Goals: mother(_Z1,_Y1)
+
+Inside OutQuery: 
+List of Goals: sibling(pebbles,X)
+varlist: X
+valueList: pebbles
+
+
+
+  YES!
+solution:
+X = pebbles
+val it = () : unit
+query:  sibling(X,pebbles)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: X
+
+Inside Solve: 
+Head of Rules: sibling(_X1,_Y1)
+Head of Goals: sibling(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z1,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z1,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z1,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z1,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z1,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z1,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z1,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z1,X)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: X
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: _Z1
+
+Inside Solve: 
+Head of Rules: mother(wilma,pebbles)
+Head of Goals: mother(_Z1,_X1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(wilma,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(wilma,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(wilma,pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(wilma,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(wilma,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(wilma,pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(wilma,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(wilma,pebbles)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: wilma
+
+Inside Solve: 
+Head of Rules: mother(wilma,pebbles)
+Head of Goals: mother(_Z1,_Y1)
+
+Inside OutQuery: 
+List of Goals: sibling(X,pebbles)
+varlist: X
+valueList: pebbles
+
+
+
+  YES!
+solution:
+X = pebbles
+val it = () : unit
+query:  aunt(pebbles,X)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: aunt(_X1,_Y1)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: aunt(_X1,_Y1)
+Head of Goals: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: betty
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: female(pebbles)
+Head of Goals: female(_X1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: sibling(_X3,_Y3)
+t2_prime: sibling(pebbles,_Z1)
+
+Inside Unify: 
+t1_prime: _Y3
+t2_prime: _Z1
+
+Inside Unify: 
+t1_prime: _X3
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: sibling(_X3,_Y3)
+Head of Goals: sibling(_X1,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z3,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z3,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z3,pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z3,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z3,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z3,pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z3,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z3,pebbles)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: _Z3
+
+Inside Solve: 
+Head of Rules: mother(wilma,pebbles)
+Head of Goals: mother(_Z3,_X3)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: _Z1
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: wilma
+
+Inside Solve: 
+Head of Rules: mother(wilma,pebbles)
+Head of Goals: mother(_Z3,_Y3)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X6,_Y6)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: _Y6
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X6
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: parent(_X6,_Y6)
+Head of Goals: parent(_Z1,_Y1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: X
+
+Inside Unify: 
+t1_prime: barney
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: X
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: X
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: dafney
+t2_prime: X
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X7,_Y7)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X7,_Y7)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: sibling(_X7,_Y7)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: aunt(_X7,_Y7)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: uncle(_X7,_Y7)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: cousin(_X7,_Y7)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: cousin(_X7,_Y7)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: ances(_X7,_Y7)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: ances(_X7,_Y7)
+t2_prime: father(pebbles,X)
+
+
+
+No Solution Found!
+val it = () : unit
+query:  aunt(X,pebbles)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: aunt(_X1,_Y1)
+t2_prime: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: X
+
+Inside Solve: 
+Head of Rules: aunt(_X1,_Y1)
+Head of Goals: aunt(X,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: female(X)
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: X
+
+Inside Solve: 
+Head of Rules: female(wilma)
+Head of Goals: female(_X1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: sibling(_X3,_Y3)
+t2_prime: sibling(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: _Y3
+t2_prime: _Z1
+
+Inside Unify: 
+t1_prime: _X3
+t2_prime: wilma
+
+Inside Solve: 
+Head of Rules: sibling(_X3,_Y3)
+Head of Goals: sibling(_X1,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: wilma
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: wilma
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: wilma
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: wilma
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: wilma
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: wilma
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: dafney
+t2_prime: wilma
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: parent(_X4,_Y4)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: parent(_X4,_Y4)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: sibling(_X4,_Y4)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: aunt(_X4,_Y4)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: uncle(_X4,_Y4)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: cousin(_X4,_Y4)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: cousin(_X4,_Y4)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: ances(_X4,_Y4)
+t2_prime: mother(_Z3,wilma)
+
+Inside Unify: 
+t1_prime: ances(_X4,_Y4)
+t2_prime: mother(_Z3,wilma)
+
+
+
+No Solution Found!
+val it = () : unit
+query:  uncle(dino,scooby)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: aunt(_X1,_Y1)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: uncle(_X1,_Y1)
+t2_prime: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: dino
+
+Inside Solve: 
+Head of Rules: uncle(_X1,_Y1)
+Head of Goals: uncle(dino,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: dino
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: barney
+t2_prime: dino
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: dino
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: dino
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: male(dino)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: dino
+
+Inside Solve: 
+Head of Rules: male(dino)
+Head of Goals: male(_X1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: sibling(_X3,_Y3)
+t2_prime: sibling(dino,_Z1)
+
+Inside Unify: 
+t1_prime: _Y3
+t2_prime: _Z1
+
+Inside Unify: 
+t1_prime: _X3
+t2_prime: dino
+
+Inside Solve: 
+Head of Rules: sibling(_X3,_Y3)
+Head of Goals: sibling(_X1,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z3,dino)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z3,dino)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z3,dino)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z3,dino)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z3,dino)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z3,dino)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z3,dino)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z3,dino)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: dino
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: mother(_Z3,dino)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: dino
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: _Z3
+
+Inside Solve: 
+Head of Rules: mother(wilma,dino)
+Head of Goals: mother(_Z3,_X3)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(wilma,_Z1)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: _Z1
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: wilma
+
+Inside Solve: 
+Head of Rules: mother(wilma,pebbles)
+Head of Goals: mother(_Z3,_Y3)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: parent(_X6,_Y6)
+t2_prime: parent(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: _Y6
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: _X6
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: parent(_X6,_Y6)
+Head of Goals: parent(_Z1,_Y1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: dafney
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: parent(_X7,_Y7)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: parent(_X7,_Y7)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: sibling(_X7,_Y7)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: aunt(_X7,_Y7)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: uncle(_X7,_Y7)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: cousin(_X7,_Y7)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: cousin(_X7,_Y7)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: ances(_X7,_Y7)
+t2_prime: father(pebbles,scooby)
+
+Inside Unify: 
+t1_prime: ances(_X7,_Y7)
+t2_prime: father(pebbles,scooby)
+
+
+
+No Solution Found!
+val it = () : unit
+query:  uncle(pebbles,X)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: aunt(_X1,_Y1)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: uncle(_X1,_Y1)
+t2_prime: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: uncle(_X1,_Y1)
+Head of Goals: uncle(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: barney
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: parent(_X2,_Y2)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: parent(_X2,_Y2)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: sibling(_X2,_Y2)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: aunt(_X2,_Y2)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: uncle(_X2,_Y2)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: cousin(_X2,_Y2)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: cousin(_X2,_Y2)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: ances(_X2,_Y2)
+t2_prime: male(pebbles)
+
+Inside Unify: 
+t1_prime: ances(_X2,_Y2)
+t2_prime: male(pebbles)
+
+
+
+No Solution Found!
+val it = () : unit
+query:  cousin(scooby,X)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: aunt(_X1,_Y1)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: uncle(_X1,_Y1)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: cousin(_X1,_Y1)
+t2_prime: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: scooby
+
+Inside Solve: 
+Head of Rules: cousin(_X1,_Y1)
+Head of Goals: cousin(scooby,X)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: mother(_Z1,scooby)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: _Z1
+
+Inside Solve: 
+Head of Rules: mother(pebbles,scooby)
+Head of Goals: mother(_Z1,_X1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: sibling(_X3,_Y3)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: aunt(_X3,_Y3)
+t2_prime: aunt(pebbles,X)
+
+Inside Unify: 
+t1_prime: _Y3
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X3
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: aunt(_X3,_Y3)
+Head of Goals: aunt(_Z1,_Y1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: betty
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: female(pebbles)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: female(pebbles)
+Head of Goals: female(_X3)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: parent(_X5,_Y5)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: parent(_X5,_Y5)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: sibling(_X5,_Y5)
+t2_prime: sibling(pebbles,_Z3)
+
+Inside Unify: 
+t1_prime: _Y5
+t2_prime: _Z3
+
+Inside Unify: 
+t1_prime: _X5
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: sibling(_X5,_Y5)
+Head of Goals: sibling(_X3,_Z3)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z5,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z5,pebbles)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z5,pebbles)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z5,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z5,pebbles)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z5,pebbles)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z5,pebbles)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z5,pebbles)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: _Z5
+
+Inside Solve: 
+Head of Rules: mother(wilma,pebbles)
+Head of Goals: mother(_Z5,_X5)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(wilma,_Z3)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(wilma,_Z3)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(wilma,_Z3)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(wilma,_Z3)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(wilma,_Z3)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(wilma,_Z3)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(wilma,_Z3)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(wilma,_Z3)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: _Z3
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: wilma
+
+Inside Solve: 
+Head of Rules: mother(wilma,pebbles)
+Head of Goals: mother(_Z5,_Y5)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X8,_Y8)
+t2_prime: parent(pebbles,X)
+
+Inside Unify: 
+t1_prime: _Y8
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X8
+t2_prime: pebbles
+
+Inside Solve: 
+Head of Rules: parent(_X8,_Y8)
+Head of Goals: parent(_Z3,_Y3)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: X
+
+Inside Unify: 
+t1_prime: barney
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: X
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: X
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: dafney
+t2_prime: X
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: pebbles
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X9,_Y9)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: parent(_X9,_Y9)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: sibling(_X9,_Y9)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: aunt(_X9,_Y9)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: uncle(_X9,_Y9)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: cousin(_X9,_Y9)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: cousin(_X9,_Y9)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: ances(_X9,_Y9)
+t2_prime: father(pebbles,X)
+
+Inside Unify: 
+t1_prime: ances(_X9,_Y9)
+t2_prime: father(pebbles,X)
+
+
+
+No Solution Found!
+val it = () : unit
+query:  cousin(dafney,X)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: aunt(_X1,_Y1)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: uncle(_X1,_Y1)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: cousin(_X1,_Y1)
+t2_prime: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: dafney
+
+Inside Solve: 
+Head of Rules: cousin(_X1,_Y1)
+Head of Goals: cousin(dafney,X)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: dafney
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: dafney
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: dafney
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: dafney
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: dafney
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: dafney
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: mother(_Z1,dafney)
+
+Inside Unify: 
+t1_prime: dafney
+t2_prime: dafney
+
+Inside Unify: 
+t1_prime: wednesday
+t2_prime: _Z1
+
+Inside Solve: 
+Head of Rules: mother(wednesday,dafney)
+Head of Goals: mother(_Z1,_X1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: sibling(_X3,_Y3)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: aunt(_X3,_Y3)
+t2_prime: aunt(wednesday,X)
+
+Inside Unify: 
+t1_prime: _Y3
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X3
+t2_prime: wednesday
+
+Inside Solve: 
+Head of Rules: aunt(_X3,_Y3)
+Head of Goals: aunt(_Z1,_Y1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: wilma
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: betty
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: female(wednesday)
+
+Inside Unify: 
+t1_prime: wednesday
+t2_prime: wednesday
+
+Inside Solve: 
+Head of Rules: female(wednesday)
+Head of Goals: female(_X3)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: parent(_X5,_Y5)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: parent(_X5,_Y5)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: sibling(_X5,_Y5)
+t2_prime: sibling(wednesday,_Z3)
+
+Inside Unify: 
+t1_prime: _Y5
+t2_prime: _Z3
+
+Inside Unify: 
+t1_prime: _X5
+t2_prime: wednesday
+
+Inside Solve: 
+Head of Rules: sibling(_X5,_Y5)
+Head of Goals: sibling(_X3,_Z3)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: dafney
+t2_prime: wednesday
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: parent(_X6,_Y6)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: parent(_X6,_Y6)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: sibling(_X6,_Y6)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: aunt(_X6,_Y6)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: uncle(_X6,_Y6)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: cousin(_X6,_Y6)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: cousin(_X6,_Y6)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: ances(_X6,_Y6)
+t2_prime: mother(_Z5,wednesday)
+
+Inside Unify: 
+t1_prime: ances(_X6,_Y6)
+t2_prime: mother(_Z5,wednesday)
+
+
+
+No Solution Found!
+val it = () : unit
+query:  male(X),cousin(X,Y)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: male(X)
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: X
+
+Inside Solve: 
+Head of Rules: male(fred)
+Head of Goals: male(X)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: parent(_X2,_Y2)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: parent(_X2,_Y2)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: sibling(_X2,_Y2)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: aunt(_X2,_Y2)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: uncle(_X2,_Y2)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: cousin(_X2,_Y2)
+t2_prime: cousin(fred,Y)
+
+Inside Unify: 
+t1_prime: _Y2
+t2_prime: Y
+
+Inside Unify: 
+t1_prime: _X2
+t2_prime: fred
+
+Inside Solve: 
+Head of Rules: cousin(_X2,_Y2)
+Head of Goals: cousin(X,Y)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: fred
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: fred
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: fred
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: fred
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: shaggy
+t2_prime: fred
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: fred
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: dafney
+t2_prime: fred
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: parent(_X3,_Y3)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: sibling(_X3,_Y3)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: aunt(_X3,_Y3)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: uncle(_X3,_Y3)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: cousin(_X3,_Y3)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: cousin(_X3,_Y3)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: ances(_X3,_Y3)
+t2_prime: mother(_Z2,fred)
+
+Inside Unify: 
+t1_prime: ances(_X3,_Y3)
+t2_prime: mother(_Z2,fred)
+
+
+
+No Solution Found!
+val it = () : unit
+query:  ances(fred,X)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: aunt(_X1,_Y1)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: uncle(_X1,_Y1)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: cousin(_X1,_Y1)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: cousin(_X1,_Y1)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: ances(_X1,_Y1)
+t2_prime: ances(fred,X)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: fred
+
+Inside Solve: 
+Head of Rules: ances(_X1,_Y1)
+Head of Goals: ances(fred,X)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: parent(_X2,_Y2)
+t2_prime: parent(fred,X)
+
+Inside Unify: 
+t1_prime: _Y2
+t2_prime: X
+
+Inside Unify: 
+t1_prime: _X2
+t2_prime: fred
+
+Inside Solve: 
+Head of Rules: parent(_X2,_Y2)
+Head of Goals: parent(_X1,_Y1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: father(fred,X)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: X
+
+Inside Unify: 
+t1_prime: fred
+t2_prime: fred
+
+Inside Solve: 
+Head of Rules: father(fred,rocky)
+Head of Goals: father(_X2,_Y2)
+
+Inside OutQuery: 
+List of Goals: ances(fred,X)
+varlist: X
+valueList: rocky
+
+
+
+  YES!
+solution:
+X = rocky
+val it = () : unit
+query:  ances(X,scooby)?
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: parent(_X1,_Y1)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: sibling(_X1,_Y1)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: aunt(_X1,_Y1)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: uncle(_X1,_Y1)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: cousin(_X1,_Y1)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: cousin(_X1,_Y1)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: ances(_X1,_Y1)
+t2_prime: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: _Y1
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: _X1
+t2_prime: X
+
+Inside Solve: 
+Head of Rules: ances(_X1,_Y1)
+Head of Goals: ances(X,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: father(bambam,shaggy)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: father(rocky,dafney)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,pebbles)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,dino)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(wilma,rocky)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(betty,bambam)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,shaggy)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(pebbles,scooby)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: mother(wednesday,dafney)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: male(fred)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: male(barney)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: male(bambam)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: male(rocky)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: male(dino)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: male(shaggy)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: male(scooby)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: female(wilma)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: female(betty)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: female(pebbles)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: female(wednesday)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: female(dafney)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: parent(_X2,_Y2)
+t2_prime: parent(X,scooby)
+
+Inside Unify: 
+t1_prime: _Y2
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: _X2
+t2_prime: X
+
+Inside Solve: 
+Head of Rules: parent(_X2,_Y2)
+Head of Goals: parent(_X1,_Y1)
+
+Inside Unify: 
+t1_prime: father(fred,rocky)
+t2_prime: father(X,scooby)
+
+Inside Unify: 
+t1_prime: rocky
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: father(fred,dino)
+t2_prime: father(X,scooby)
+
+Inside Unify: 
+t1_prime: dino
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: father(fred,pebbles)
+t2_prime: father(X,scooby)
+
+Inside Unify: 
+t1_prime: pebbles
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: father(barney,bambam)
+t2_prime: father(X,scooby)
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: father(bambam,scooby)
+t2_prime: father(X,scooby)
+
+Inside Unify: 
+t1_prime: scooby
+t2_prime: scooby
+
+Inside Unify: 
+t1_prime: bambam
+t2_prime: X
+
+Inside Solve: 
+Head of Rules: father(bambam,scooby)
+Head of Goals: father(_X2,_Y2)
+
+Inside OutQuery: 
+List of Goals: ances(X,scooby)
+varlist: X
+valueList: bambam
+
+
+
+  YES!
+solution:
+X = bambam
+val it = () : unit
+- 
